@@ -1,6 +1,8 @@
-
-Flask==2.2.3
-Werkzeug==2.2.3
-flask-cors==3.0.10
-google-cloud-dialogflow==2.13.0
-gunicorn==20.1.0
+# Requirements for the Flask backend application
+Flask==3.0.0
+Flask-Cors==4.0.0
+pymysql==1.1.0
+PyJWT==2.8.0
+python-dotenv==1.0.0
+gunicorn==21.2.0
+cryptography==41.0.7
