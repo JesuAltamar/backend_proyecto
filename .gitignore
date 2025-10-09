@@ -1,0 +1,28 @@
+# Archivos de entorno
+.env
+.venv
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Base de datos local
+*.sqlite
+*.db
+
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Credenciales de Google Cloud
+service-account.json
+*.json

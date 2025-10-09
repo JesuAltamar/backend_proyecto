@@ -1,0 +1,39 @@
+<!-- templates/consultar_evaluaciones.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluaciones Registradas</title>
+</head>
+<body>
+    <h2>Listado de Evaluaciones</h2>
+    {% if evaluaciones %}
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario ID</th>
+                    <th>Nivel de Riesgo</th>
+                    <th>Estado Emocional</th>
+                    <th>Fecha Evaluación</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eval in evaluaciones %}
+                    <tr>
+                        <td>{{ eval.id }}</td>
+                        <td>{{ eval.usuario_id }}</td>
+                        <td>{{ eval.nivel_riesgo }}</td>
+                        <td>{{ eval.estado_emocional }}</td>
+                        <td>{{ eval.fecha_evaluacion }}</td>
+                        <td>{{ eval.observaciones }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay evaluaciones registradas.</p>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!-- templates/nueva_evaluacion.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nueva Evaluación de Riesgo</title>
+</head>
+<body>
+    <h2>Registrar Nueva Evaluación</h2>
+    <form action="/guardar_evaluacion" method="POST">
+        <label for="usuario_id">Usuario:</label>
+        <select id="usuario_id" name="usuario_id" required>
+            <option value="" disabled selected>Seleccione un usuario</option>
+            {% for usuario in usuarios %}
+                <option value="{{ usuario['id'] }}">{{ usuario['id'] }} - {{ usuario['nombre'] }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="nivel_riesgo">Nivel de Riesgo:</label>
+        <select id="nivel_riesgo" name="nivel_riesgo" required>
+            <option value="bajo">Bajo</option>
+            <option value="medio">Medio</option>
+            <option value="alto">Alto</option>
+        </select><br><br>
+
+        <label for="estado_emocional">Estado Emocional:</label>
+        <input type="text" id="estado_emocional" name="estado_emocional" required><br><br>
+
+        <label for="fecha_evaluacion">Fecha de Evaluación:</label>
+        <input type="datetime-local" id="fecha_evaluacion" name="fecha_evaluacion" required><br><br>
+
+        <label for="observaciones">Observaciones:</label><br>
+        <textarea id="observaciones" name="observaciones" rows="4" cols="50" required></textarea><br><br>
+
+        <button type="submit">Guardar Evaluación</button>
+    </form>
+</body>
+</html>
