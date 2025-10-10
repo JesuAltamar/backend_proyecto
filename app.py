@@ -45,7 +45,12 @@ EMAIL_CONFIG = {
     'password': 'dcfh wvtw iylu gdvf'
 }
 
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/*": {
+    "origins": [
+        "https://alegra-tawny.vercel.app",
+        "http://localhost:8080"
+    ]
+}}, supports_credentials=True)
  
 app.config["JWT_SECRET_KEY"] = "super_secret_key"
 app.config["JWT_ALGORITHM"] = "HS256"
