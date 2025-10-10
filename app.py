@@ -18,6 +18,10 @@ from gemini_service import GeminiPsychologistService
 import uuid
 
 
+
+
+
+
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
@@ -49,10 +53,11 @@ jwt_manager = JWTManager(app)
 
 def connect_to_db():
     return pymysql.connect(
-        host='localhost',
-        user='root',
-        password='',
-        db='alegra',
+        host=os.getenv('DB_HOST', 'localhost'),
+        user=os.getenv('DB_USER', 'root'),
+        password=os.getenv('DB_PASSWORD', ''),
+        db=os.getenv('DB_NAME', 'alegra'),
+        port=int(os.getenv('DB_PORT', 3306)),
         charset='utf8mb4',
         cursorclass=pymysql.cursors.DictCursor,
     )
