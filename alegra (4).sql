@@ -48,7 +48,7 @@ CREATE TABLE `avatar_config` (
   `max_file_size` int(11) DEFAULT 5242880 COMMENT 'Tama?o m?ximo en bytes (5MB por defecto)',
   `allowed_extensions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '["jpg", "jpeg", "png", "gif", "webp"]' CHECK (json_valid(`allowed_extensions`)),
   `upload_path` varchar(255) DEFAULT 'uploads/avatars',
-  `base_url` varchar(255) DEFAULT 'http://localhost:5000',
+  `base_url` varchar(255) DEFAULT 'http://backendproyecto-producción-4a8d.up.railway.app',
   `compression_quality` int(11) DEFAULT 85 COMMENT 'Calidad de compresi?n (1-100)',
   `max_width` int(11) DEFAULT 800 COMMENT 'Ancho m?ximo en p?xeles',
   `max_height` int(11) DEFAULT 800 COMMENT 'Alto m?ximo en p?xeles',
@@ -61,7 +61,7 @@ CREATE TABLE `avatar_config` (
 --
 
 INSERT INTO `avatar_config` (`id`, `max_file_size`, `allowed_extensions`, `upload_path`, `base_url`, `compression_quality`, `max_width`, `max_height`, `created_at`, `updated_at`) VALUES
-(1, 5242880, '[\"jpg\", \"jpeg\", \"png\", \"gif\", \"webp\"]', 'uploads/avatars', 'http://localhost:5000', 85, 800, 800, '2025-09-30 23:25:29', '2025-09-30 23:25:29');
+(1, 5242880, '[\"jpg\", \"jpeg\", \"png\", \"gif\", \"webp\"]', 'uploads/avatars', 'http://backendproyecto-producción-4a8d.up.railway.app', 85, 800, 800, '2025-09-30 23:25:29', '2025-09-30 23:25:29');
 
 -- --------------------------------------------------------
 
