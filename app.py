@@ -45,16 +45,14 @@ EMAIL_CONFIG = {
     'password': 'dcfh wvtw iylu gdvf'
 }
 
-CORS(app, resources={r"/*": {
-    "origins": [
-        "https://alegra-tawny.vercel.app",
-        "https://alegra-git-main-alegras-projects.vercel.app",
-        "https://alegra-oao2cy0t5-alegras-projects.vercel.app",
-        "http://localhost:8080"
-    ],
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"]
-}}, supports_credentials=True)
+CORS(app, 
+     origins=[
+         r"https://alegra.*\.vercel\.app",
+         "http://localhost:8080"
+     ],
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
  
 app.config["JWT_SECRET_KEY"] = "super_secret_key"
 app.config["JWT_ALGORITHM"] = "HS256"
