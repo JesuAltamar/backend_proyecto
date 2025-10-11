@@ -48,8 +48,11 @@ EMAIL_CONFIG = {
 CORS(app, resources={r"/*": {
     "origins": [
         "https://alegra-tawny.vercel.app",
+        "https://alegra-oao2cy0t5-alegras-projects.vercel.app",
         "http://localhost:8080"
-    ]
+    ],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"]
 }}, supports_credentials=True)
  
 app.config["JWT_SECRET_KEY"] = "super_secret_key"
