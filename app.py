@@ -42,7 +42,11 @@ EMAIL_CONFIG = {
 
 # ⭐ CONFIGURACIÓN CORS MEJORADA - DEBE IR ANTES DE LAS RUTAS
 # ⭐ CONFIGURACIÓN CORS - DEBE IR ANTES DE LAS RUTAS
-CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, resources={r"/api/*": {
+    "origins": ["https://alegra-tawny.vercel.app"],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"]
+}})
 
 
 # Middleware adicional para asegurar CORS
