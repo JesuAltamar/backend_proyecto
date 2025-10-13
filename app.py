@@ -17,11 +17,6 @@ from dotenv import load_dotenv
 from gemini_service import GeminiPsychologistService
 import uuid
 
-
-
-
-
-
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
@@ -32,7 +27,7 @@ if not GEMINI_API_KEY:
 gemini_service = GeminiPsychologistService(GEMINI_API_KEY)
 
 app = Flask(__name__)
-print("🔍 Rutas registradas:")
+print("📋 Rutas registradas:")
 for rule in app.url_map.iter_rules():
     print(rule.endpoint, "->", rule)
 
@@ -45,15 +40,37 @@ EMAIL_CONFIG = {
     'password': 'dcfh wvtw iylu gdvf'
 }
 
-CORS(app, resources={r"/*": {
-    "origins": [
+# ⭐ CONFIGURACIÓN CORS MEJORADA - DEBE IR ANTES DE LAS RUTAS
+CORS(app, 
+     origins=[
+         "https://alegra-tawny.vercel.app",
+         "https://alegra-git-main-alegras-projects.vercel.app",
+         "http://localhost:8080",
+         "http://localhost:5000"
+     ],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "Accept"],
+     expose_headers=["Content-Type", "Authorization"],
+     supports_credentials=True,
+     max_age=3600
+)
+
+# Middleware adicional para asegurar CORS
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    allowed_origins = [
         "https://alegra-tawny.vercel.app",
-        "https://alegra-git-main-alegras-projects.vercel.app", 
-        "http://localhost:8080"
-    ],
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization"]
-}}, supports_credentials=True)
+        "https://alegra-git-main-alegras-projects.vercel.app",
+        "http://localhost:8080",
+        "http://localhost:5000"
+    ]
+    if origin in allowed_origins:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    return response
  
 app.config["JWT_SECRET_KEY"] = "super_secret_key"
 app.config["JWT_ALGORITHM"] = "HS256"
@@ -69,8 +86,6 @@ def connect_to_db():
         charset='utf8mb4',
         cursorclass=pymysql.cursors.DictCursor,
     )
-
-
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-account.json"
 PROJECT_ID = "risk-assessment-bot-leim"
@@ -243,6 +258,7 @@ def get_chat_sentimientos():
     finally:
         if connection:
             connection.close()
+
 @app.route('/api/admin/chat/temas', methods=['GET'])
 def get_chat_temas():
     """Obtiene temas más consultados"""
@@ -298,7 +314,6 @@ def get_chat_tendencias():
     finally:
         if 'connection' in locals():
             connection.close()
-
 
 # ==================== EMAIL ====================
 def send_email(to_email, subject, html_content):
@@ -484,8 +499,12 @@ def index():
         return render_template('index.html', usuarios=[])
 
 # ==================== LOGIN ====================
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
 def api_login():
+    # Manejar preflight request
+    if request.method == 'OPTIONS':
+        return '', 204
+        
     try:
         data = request.get_json()
         if not data:
@@ -1033,8 +1052,6 @@ def api_get_weekly_active_users():
         if 'connection' in locals():
             connection.close()
 
-# ... (incluye tus endpoints de juegos, actividades, etc.)
-
 # ==================== NOTIFICACIONES ====================
 @app.route('/api/admin/notificaciones', methods=['GET'])
 def obtener_notificaciones_admin():
@@ -1168,6 +1185,7 @@ def crear_notificacion_crisis(usuario_id, chat_id, mensaje, crisis_level):
     finally:
         if 'conn' in locals():
             conn.close()
+
 # ==================== ACTIVIDADES ====================
 
 @app.route('/api/admin/actividades-recientes', methods=['GET'])
@@ -1520,11 +1538,12 @@ def obtener_historial_racha(user_id):
         return jsonify({'success': False, 'message': 'Error interno'}), 500
     finally:
         if 'connection' in locals():
-            connection.close()            
-
+            connection.close()
 
 # ==================== MAIN ====================
 if __name__ == '__main__':
     register_foto_routes(app)
     print("🚀 Iniciando servidor Flask...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Usar el puerto de la variable de entorno PORT (Railway lo requiere)
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)  # debug=False en producción
