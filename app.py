@@ -41,7 +41,8 @@ EMAIL_CONFIG = {
 }
 
 # ⭐ CONFIGURACIÓN CORS MEJORADA - DEBE IR ANTES DE LAS RUTAS
-CORS(app)
+# ⭐ CONFIGURACIÓN CORS - DEBE IR ANTES DE LAS RUTAS
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 
 # Middleware adicional para asegurar CORS
