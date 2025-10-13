@@ -41,36 +41,11 @@ EMAIL_CONFIG = {
 }
 
 # ⭐ CONFIGURACIÓN CORS MEJORADA - DEBE IR ANTES DE LAS RUTAS
-CORS(app, 
-     origins=[
-         "https://alegra-tawny.vercel.app",
-         "https://alegra-git-main-alegras-projects.vercel.app",
-         "http://localhost:8080",
-         "http://localhost:5000"
-     ],
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization", "Accept"],
-     expose_headers=["Content-Type", "Authorization"],
-     supports_credentials=True,
-     max_age=3600
-)
+CORS(app)
+
 
 # Middleware adicional para asegurar CORS
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    allowed_origins = [
-        "https://alegra-tawny.vercel.app",
-        "https://alegra-git-main-alegras-projects.vercel.app",
-        "http://localhost:8080",
-        "http://localhost:5000"
-    ]
-    if origin in allowed_origins:
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    return response
+
  
 app.config["JWT_SECRET_KEY"] = "super_secret_key"
 app.config["JWT_ALGORITHM"] = "HS256"
