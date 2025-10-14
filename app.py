@@ -58,16 +58,23 @@ app.config["JWT_SECRET_KEY"] = "super_secret_key"
 app.config["JWT_ALGORITHM"] = "HS256"
 jwt_manager = JWTManager(app)
 
+
 def connect_to_db():
+    db_host = os.getenv('DB_HOST')
+    if not db_host:
+        raise RuntimeError("❌ ERROR: No se encontró la variable DB_HOST")
+    
     return pymysql.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASSWORD', ''),
-        db=os.getenv('DB_NAME', 'alegra'),
+        host=db_host,
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        db=os.getenv('DB_NAME'),
         port=int(os.getenv('DB_PORT', 3306)),
         charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor,
+        cursorclass=pymysql.cursors.DictCursor
     )
+
+
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-account.json"
 PROJECT_ID = "risk-assessment-bot-leim"
