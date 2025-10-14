@@ -40,23 +40,18 @@ EMAIL_CONFIG = {
     'password': 'dcfh wvtw iylu gdvf'
 }
 
-CORS(app)
 
-ALLOWED_ORIGINS = [
-    "https://alegra-tawny.vercel.app",
-    "https://alegra-git-main-alegras-projects.vercel.app",
-    "http://localhost:8080"
-]
 
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin in ALLOWED_ORIGINS:
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept'
-        response.headers['Access-Control-Max-Age'] = '3600'
-    return response
+CORS(app,
+     origins=[
+         "https://alegra-tawny.vercel.app",
+         "https://alegra-git-main-alegras-projects.vercel.app",
+         "http://localhost:8080"
+     ],
+     supports_credentials=True,
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "Accept"])
+
 
  
 app.config["JWT_SECRET_KEY"] = "super_secret_key"
