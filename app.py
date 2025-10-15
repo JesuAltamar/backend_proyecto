@@ -60,21 +60,47 @@ jwt_manager = JWTManager(app)
 
 
 def connect_to_db():
-    db_host = os.getenv('DB_HOST')
-    if not db_host:
-        raise RuntimeError("❌ ERROR: No se encontró la variable DB_HOST")
+    # Validar TODAS las variables necesarias
+    required_vars = {
+        'DB_HOST': os.getenv('DB_HOST'),
+        'DB_USER': os.getenv('DB_USER'),
+        'DB_PASSWORD': os.getenv('DB_PASSWORD'),
+        'DB_NAME': os.getenv('DB_NAME'),
+        'DB_PORT': os.getenv('DB_PORT', '3306')
+    }
     
-    return pymysql.connect(
-        host=db_host,
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        db=os.getenv('DB_NAME'),
-        port=int(os.getenv('DB_PORT', 3306)),
-        charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor
-    )
-
-
+    # Mostrar qué variables están configuradas (sin mostrar password completo)
+    print("🔍 Variables de entorno:")
+    for key, value in required_vars.items():
+        if key == 'DB_PASSWORD':
+            print(f"  {key}: {'✅ Configurado' if value else '❌ NO configurado'}")
+        else:
+            print(f"  {key}: {value if value else '❌ NO configurado'}")
+    
+    # Verificar que todas las variables existan
+    missing_vars = [key for key, value in required_vars.items() if not value]
+    if missing_vars:
+        raise RuntimeError(f"❌ ERROR: Faltan variables de entorno: {', '.join(missing_vars)}")
+    
+    try:
+        connection = pymysql.connect(
+            host=required_vars['DB_HOST'],
+            user=required_vars['DB_USER'],
+            password=required_vars['DB_PASSWORD'],
+            db=required_vars['DB_NAME'],
+            port=int(required_vars['DB_PORT']),
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor,
+            connect_timeout=10  # ⬅️ IMPORTANTE: timeout de 10 segundos
+        )
+        print(f"✅ Conexión exitosa a la base de datos: {required_vars['DB_NAME']}")
+        return connection
+    except Exception as e:
+        print(f"❌ Error conectando a la base de datos: {e}")
+        print(f"   Host: {required_vars['DB_HOST']}")
+        print(f"   Port: {required_vars['DB_PORT']}")
+        print(f"   Database: {required_vars['DB_NAME']}")
+        raise
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-account.json"
 PROJECT_ID = "risk-assessment-bot-leim"
