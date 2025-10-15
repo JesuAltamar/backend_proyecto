@@ -44,8 +44,8 @@ EMAIL_CONFIG = {
 
 CORS(app,
      origins=[
-         "https://alegra-tawny.vercel.app",
-         "https://alegra-git-main-alegras-projects.vercel.app",
+         "https://alegra-nu.vercel.app", 
+         "https://alegra-*.vercel.app",
          "http://localhost:8080"
      ],
      supports_credentials=True,
