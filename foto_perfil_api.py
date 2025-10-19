@@ -1,5 +1,5 @@
 # foto_perfil_api.py
-from flask import request, jsonify
+from flask import request, jsonify, send_from_directory, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import base64
 import os
@@ -16,23 +16,42 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def connect_to_db():
+    """Conecta a la base de datos usando variables de entorno"""
+    required_vars = {
+        'DB_HOST': os.getenv('DB_HOST'),
+        'DB_USER': os.getenv('DB_USER'),
+        'DB_PASSWORD': os.getenv('DB_PASSWORD'),
+        'DB_NAME': os.getenv('DB_NAME'),
+        'DB_PORT': os.getenv('DB_PORT', '3306')
+    }
+    
     return pymysql.connect(
-        host='localhost',
-        user='root',
-        password='',
-        db='alegra',
+        host=required_vars['DB_HOST'],
+        user=required_vars['DB_USER'],
+        password=required_vars['DB_PASSWORD'],
+        db=required_vars['DB_NAME'],
+        port=int(required_vars['DB_PORT']),
         charset='utf8mb4',
         cursorclass=pymysql.cursors.DictCursor,
+        connect_timeout=10
     )
 
 def register_foto_routes(app):
     
-    @app.route('/api/foto/upload', methods=['POST'])
-    @jwt_required()
+    @app.route('/api/foto/upload', methods=['POST', 'OPTIONS'])
+    @jwt_required(optional=True)
     def upload_foto():
+        # Manejar preflight CORS
+        if request.method == 'OPTIONS':
+            return '', 204
+        
         print("🔍 Función upload_foto iniciada")
         try:
-            user_id = int(get_jwt_identity())
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({'success': False, 'message': 'No autenticado'}), 401
+            
+            user_id = int(user_id)
             print(f"🔍 User ID: {user_id}")
             
             data = request.get_json()
@@ -53,10 +72,14 @@ def register_foto_routes(app):
             image_data = base64.b64decode(foto_base64)
             print(f"🔍 Imagen decodificada: {len(image_data)} bytes")
             
+            # Verificar tamaño
+            if len(image_data) > MAX_FILE_SIZE:
+                return jsonify({'success': False, 'message': 'Imagen demasiado grande (máx 5MB)'}), 400
+            
             # Verificar que la carpeta existe
             if not os.path.exists(UPLOAD_FOLDER):
-                print(f"❌ La carpeta {UPLOAD_FOLDER} no existe")
-                return jsonify({'success': False, 'message': 'Carpeta de uploads no encontrada'}), 500
+                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                print(f"✅ Carpeta creada: {UPLOAD_FOLDER}")
             
             # Generar nombre único
             filename = f"perfil_{user_id}_{uuid.uuid4().hex[:8]}.jpg"
@@ -88,7 +111,7 @@ def register_foto_routes(app):
                     print("✅ Base de datos actualizada")
                     
                     # Eliminar foto anterior si existe
-                    if old_photo and old_photo['avatar_url']:
+                    if old_photo and old_photo.get('avatar_url'):
                         old_filename = old_photo['avatar_url'].split('/')[-1]
                         old_filepath = os.path.join(UPLOAD_FOLDER, old_filename)
                         if os.path.exists(old_filepath):
@@ -111,11 +134,19 @@ def register_foto_routes(app):
             traceback.print_exc()
             return jsonify({'success': False, 'message': f'Error interno: {str(e)}'}), 500
 
-    @app.route('/api/usuario/perfil', methods=['GET'])
-    @jwt_required()
+    @app.route('/api/usuario/perfil', methods=['GET', 'OPTIONS'])
+    @jwt_required(optional=True)
     def get_user_profile():
+        # Manejar preflight CORS
+        if request.method == 'OPTIONS':
+            return '', 204
+        
         try:
-            user_id = int(get_jwt_identity())
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({'success': False, 'message': 'No autenticado'}), 401
+            
+            user_id = int(user_id)
             print(f"🔍 Obteniendo perfil para user_id: {user_id}")
             
             connection = connect_to_db()
@@ -123,7 +154,7 @@ def register_foto_routes(app):
                 with connection.cursor() as cursor:
                     cursor.execute("""
                         SELECT id, nombre, correo, genero, telefono, 
-                               fecha_nacimiento, avatar_url, updated_at
+                               fecha_nacimiento, avatar_url, rol, updated_at
                         FROM usuario 
                         WHERE id = %s
                     """, (user_id,))
@@ -148,11 +179,11 @@ def register_foto_routes(app):
                             print("✅ Referencia de avatar limpiada en BD")
                     
                     # Formatear fechas si existen
-                   # Línea ~152 en foto_perfil_api.py
-                if user['fecha_nacimiento'] and hasattr(user['fecha_nacimiento'], 'strftime'):
-                   user['fecha_nacimiento'] = user['fecha_nacimiento'].strftime('%Y-%m-%d')
-                if user.get('updated_at'):
-                    user['updated_at'] = user['updated_at'].isoformat()
+                    if user.get('fecha_nacimiento') and hasattr(user['fecha_nacimiento'], 'strftime'):
+                        user['fecha_nacimiento'] = user['fecha_nacimiento'].strftime('%Y-%m-%d')
+                    
+                    if user.get('updated_at'):
+                        user['updated_at'] = user['updated_at'].isoformat()
                     
                     print(f"✅ Perfil encontrado: {user['nombre']}, Avatar: {user.get('avatar_url', 'Sin avatar')}")
                     
@@ -172,11 +203,19 @@ def register_foto_routes(app):
                 'message': 'Error interno del servidor'
             }), 500
 
-    @app.route('/api/foto/delete', methods=['DELETE'])
-    @jwt_required()
+    @app.route('/api/foto/delete', methods=['DELETE', 'OPTIONS'])
+    @jwt_required(optional=True)
     def delete_foto():
+        # Manejar preflight CORS
+        if request.method == 'OPTIONS':
+            return '', 204
+        
         try:
-            user_id = int(get_jwt_identity())
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({'success': False, 'message': 'No autenticado'}), 401
+            
+            user_id = int(user_id)
             print(f"🔍 Eliminando foto para user_id: {user_id}")
             
             connection = connect_to_db()
@@ -186,7 +225,7 @@ def register_foto_routes(app):
                     cursor.execute("SELECT avatar_url FROM usuario WHERE id = %s", (user_id,))
                     user = cursor.fetchone()
                     
-                    if not user or not user['avatar_url']:
+                    if not user or not user.get('avatar_url'):
                         return jsonify({
                             'success': False,
                             'message': 'No hay foto para eliminar'
@@ -226,9 +265,7 @@ def register_foto_routes(app):
     def serve_foto(filename):
         """Servir archivos de fotos de perfil"""
         try:
-            from flask import send_from_directory
             return send_from_directory(UPLOAD_FOLDER, filename)
         except Exception as e:
             print(f"❌ Error sirviendo foto {filename}: {e}")
-            from flask import abort
             abort(404)
