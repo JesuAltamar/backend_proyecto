@@ -660,10 +660,9 @@ def obtener_perfil():
             if not usuario:
                 return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
             
-            # Formatear fecha
-            if usuario.get('fecha_nacimiento'):
-                usuario['fecha_nacimiento'] = usuario['fecha_nacimiento'].strftime('%Y-%m-%d')
-            
+         # Formatear fecha solo si NO es string
+            if usuario.get('fecha_nacimiento') and not isinstance(usuario['fecha_nacimiento'], str):
+             usuario['fecha_nacimiento'] = usuario['fecha_nacimiento'].strftime('%Y-%m-%d')
             return jsonify({
                 'success': True,
                 'usuario': usuario

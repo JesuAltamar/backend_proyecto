@@ -105,7 +105,7 @@ def register_foto_routes(app):
                     if not user:
                         return jsonify({'success': False, 'message': 'No encontrado'}), 404
                     
-                    if user.get('fecha_nacimiento') and hasattr(user['fecha_nacimiento'], 'strftime'):
+                    if user.get('fecha_nacimiento') and not isinstance(user['fecha_nacimiento'], str):
                         user['fecha_nacimiento'] = user['fecha_nacimiento'].strftime('%Y-%m-%d')
             finally:
                 connection.close()
