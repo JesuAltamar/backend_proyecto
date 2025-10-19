@@ -43,15 +43,42 @@ EMAIL_CONFIG = {
 
 
 CORS(app,
-     origins=[
-         "https://alegra-nu.vercel.app", 
-         "https://alegra-*.vercel.app",
-         "http://localhost:8080"
-     ],
-     supports_credentials=True,
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization", "Accept"])
+     resources={
+         r"/*": {
+             "origins": ["https://alegra-nu.vercel.app", "https://*.vercel.app", "http://localhost:*", "*"],
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+             "expose_headers": ["Content-Type", "Authorization"],
+             "supports_credentials": True,
+             "max_age": 3600
+         }
+     }
+)
 
+# Middleware adicional para CORS
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+        response.headers['Access-Control-Expose-Headers'] = 'Content-Type, Authorization'
+    return response
+
+# Manejar preflight para TODAS las rutas
+@app.before_request
+def handle_preflight():
+    if request.method == 'OPTIONS':
+        response = app.make_default_options_response()
+        origin = request.headers.get('Origin')
+        if origin:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept, X-Requested-With'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+        return response
 
  
 app.config["JWT_SECRET_KEY"] = "super_secret_key"
@@ -607,6 +634,50 @@ def api_login():
     except Exception as e:
         print(f"Error en /api/login: {e}")
         return jsonify({"error": str(e)}), 500
+    
+# ==================== PERFIL USUARIO ====================
+@app.route('/api/usuario/perfil', methods=['GET', 'OPTIONS'])
+@jwt_required(optional=True)
+def obtener_perfil():
+    """Obtiene el perfil del usuario autenticado"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'success': False, 'message': 'No autenticado'}), 401
+        
+        connection = connect_to_db()
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, nombre, correo, genero, telefono, fecha_nacimiento, avatar_url, rol
+                FROM usuario 
+                WHERE id = %s
+            """, (user_id,))
+            usuario = cursor.fetchone()
+            
+            if not usuario:
+                return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+            
+            # Formatear fecha
+            if usuario.get('fecha_nacimiento'):
+                usuario['fecha_nacimiento'] = usuario['fecha_nacimiento'].strftime('%Y-%m-%d')
+            
+            return jsonify({
+                'success': True,
+                'usuario': usuario
+            }), 200
+            
+    except Exception as e:
+        print(f"❌ Error obteniendo perfil: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': 'Error interno'}), 500
+    finally:
+        if 'connection' in locals():
+            connection.close()
+
+
 
 # ==================== USUARIOS ====================
 @app.route('/api/usuarios', methods=['GET'])
