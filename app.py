@@ -1555,6 +1555,56 @@ def obtener_historial_racha(user_id):
         if 'connection' in locals():
             connection.close()
 
+ # ==================== FIX AVATAR URL ====================
+@app.route('/api/admin/fix-avatar-url', methods=['POST'])
+def fix_avatar_url():
+    """Corrige la URL de produccion a production"""
+    try:
+        # Seguridad simple
+        secret = request.headers.get('X-Secret-Key')
+        if secret != 'fix_url_2025':
+            return jsonify({'error': 'No autorizado'}), 403
+        
+        connection = connect_to_db()
+        with connection.cursor() as cursor:
+            # Ver URL actual
+            cursor.execute("SELECT id, base_url FROM avatar_config")
+            antes = cursor.fetchone()
+            
+            # Actualizar URL
+            cursor.execute("""
+                UPDATE avatar_config 
+                SET base_url = 'https://backendproyecto-production-4a8d.up.railway.app',
+                    updated_at = NOW()
+                WHERE id = 1
+            """)
+            
+            connection.commit()
+            
+            # Verificar cambio
+            cursor.execute("SELECT id, base_url, updated_at FROM avatar_config")
+            despues = cursor.fetchone()
+            
+        return jsonify({
+            'success': True,
+            'antes': antes['base_url'] if antes else None,
+            'despues': despues['base_url'] if despues else None,
+            'mensaje': '✅ URL actualizada correctamente'
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        if 'connection' in locals():
+            connection.close()
+
+
+
+
+
+
 # ==================== MAIN ====================
 if __name__ == '__main__':
     register_foto_routes(app)
