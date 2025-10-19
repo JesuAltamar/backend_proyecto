@@ -503,15 +503,17 @@ def reset_password():
 # ==================== WEB ====================
 @app.route('/')
 def index():
-    try:
-        with connect_to_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT * FROM usuario")
-                data = cur.fetchall()
-        return render_template('index.html', usuarios=data)
-    except Exception as e:
-        flash(f"Error: {e}")
-        return render_template('index.html', usuarios=[])
+    return jsonify({
+        'status': 'online',
+        'message': 'Backend API funcionando correctamente',
+        'version': '1.0',
+        'endpoints': {
+            'login': '/api/login',
+            'usuarios': '/api/usuarios',
+            'tareas': '/api/tareas',
+            'chat': '/api/chat'
+        }
+    }), 200
 
 # ==================== LOGIN ====================
 @app.route('/api/login', methods=['POST', 'OPTIONS'])
