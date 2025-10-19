@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from flask import Flask, flash, render_template, request, redirect, url_for, jsonify, session, render_template_string
+from flask import Flask, request, jsonify
 import pymysql
 from pymysql.cursors import DictCursor
 from flask_cors import CORS  
@@ -500,20 +500,63 @@ def reset_password():
         if 'connection' in locals():
             connection.close()
 
+
 # ==================== WEB ====================
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
+    """Ruta principal - Info de la API"""
     return jsonify({
         'status': 'online',
-        'message': 'Backend API funcionando correctamente',
-        'version': '1.0',
+        'message': 'API Backend Alegra - Salud Mental',
+        'version': '1.0.0',
+        'timestamp': datetime.now().isoformat(),
         'endpoints': {
-            'login': '/api/login',
-            'usuarios': '/api/usuarios',
-            'tareas': '/api/tareas',
-            'chat': '/api/chat'
-        }
+            'auth': {
+                'login': 'POST /api/login',
+                'registro': 'POST /api/usuariosip'
+            },
+            'usuarios': {
+                'listar': 'GET /api/usuarios',
+                'crear': 'POST /api/usuariosip',
+                'editar': 'PUT /api/usuarios/<id>',
+                'eliminar': 'DELETE /api/usuarios/<id>'
+            },
+            'tareas': {
+                'listar': 'GET /api/tareas',
+                'crear': 'POST /api/tareas',
+                'editar': 'PUT /api/tareas/<id>',
+                'eliminar': 'DELETE /api/tareas/<id>'
+            },
+            'chat': {
+                'enviar': 'POST /api/chat'
+            },
+            'admin': {
+                'estadisticas': 'GET /api/admin/estadisticas',
+                'notificaciones': 'GET /api/admin/notificaciones'
+            }
+        },
+        'docs': 'https://github.com/tu-usuario/tu-repo'
     }), 200
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check para Railway"""
+    try:
+        # Verificar conexión a BD
+        conn = connect_to_db()
+        conn.close()
+        
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'database': 'disconnected',
+            'error': str(e)
+        }), 503
 
 # ==================== LOGIN ====================
 @app.route('/api/login', methods=['POST', 'OPTIONS'])
