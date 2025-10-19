@@ -1,7 +1,6 @@
 # foto_perfil_api.py
 from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-import base64
 import cloudinary
 import cloudinary.uploader
 import pymysql
@@ -48,16 +47,22 @@ def register_foto_routes(app):
             
             foto_base64 = data['foto_base64']
             
+            print(f"📤 Subiendo foto a Cloudinary para usuario {user_id}")
+            
             # Subir a Cloudinary
             upload_result = cloudinary.uploader.upload(
                 foto_base64,
                 folder="alegra/perfiles",
                 public_id=f"perfil_{user_id}",
                 overwrite=True,
-                resource_type="image"
+                resource_type="image",
+                transformation=[
+                    {'width': 400, 'height': 400, 'crop': 'fill', 'gravity': 'face'}
+                ]
             )
             
             foto_url = upload_result['secure_url']
+            print(f"✅ Foto subida: {foto_url}")
             
             # Actualizar base de datos
             connection = connect_to_db()
@@ -65,12 +70,14 @@ def register_foto_routes(app):
                 with connection.cursor() as cursor:
                     cursor.execute("UPDATE usuario SET avatar_url = %s WHERE id = %s", (foto_url, user_id))
                     connection.commit()
+                    print(f"✅ BD actualizada para usuario {user_id}")
             finally:
                 connection.close()
             
             return jsonify({'success': True, 'foto_url': foto_url}), 200
         
         except Exception as e:
+            print(f"❌ Error subiendo foto: {e}")
             traceback.print_exc()
             return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -98,6 +105,7 @@ def register_foto_routes(app):
                     if not user:
                         return jsonify({'success': False, 'message': 'No encontrado'}), 404
                     
+                    # Formatear fecha solo si NO es string
                     if user.get('fecha_nacimiento') and not isinstance(user['fecha_nacimiento'], str):
                         user['fecha_nacimiento'] = user['fecha_nacimiento'].strftime('%Y-%m-%d')
             finally:
@@ -106,5 +114,42 @@ def register_foto_routes(app):
             return jsonify({'success': True, 'usuario': user}), 200
         
         except Exception as e:
+            print(f"❌ Error obteniendo perfil: {e}")
+            traceback.print_exc()
+            return jsonify({'success': False, 'message': 'Error interno'}), 500
+
+    @app.route('/api/foto/delete', methods=['DELETE', 'OPTIONS'])
+    @jwt_required(optional=True)
+    def delete_foto():
+        if request.method == 'OPTIONS':
+            return '', 204
+        
+        try:
+            user_id = get_jwt_identity()
+            if not user_id:
+                return jsonify({'success': False, 'message': 'No autenticado'}), 401
+            
+            user_id = int(user_id)
+            
+            # Eliminar de Cloudinary
+            try:
+                cloudinary.uploader.destroy(f"alegra/perfiles/perfil_{user_id}")
+                print(f"✅ Foto eliminada de Cloudinary para usuario {user_id}")
+            except Exception as e:
+                print(f"⚠️ Error eliminando de Cloudinary: {e}")
+            
+            # Actualizar BD
+            connection = connect_to_db()
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("UPDATE usuario SET avatar_url = NULL WHERE id = %s", (user_id,))
+                    connection.commit()
+            finally:
+                connection.close()
+            
+            return jsonify({'success': True, 'message': 'Foto eliminada'}), 200
+        
+        except Exception as e:
+            print(f"❌ Error: {e}")
             traceback.print_exc()
             return jsonify({'success': False, 'message': 'Error interno'}), 500
