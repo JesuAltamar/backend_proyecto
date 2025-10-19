@@ -1,15 +1,19 @@
 # foto_perfil_api.py
-from flask import request, jsonify, send_from_directory, abort
+from flask import request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import base64
-import os
-import uuid
+import cloudinary
+import cloudinary.uploader
 import pymysql
 import traceback
+import os
 
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads', 'fotos_perfil')
-MAX_FILE_SIZE = 5 * 1024 * 1024
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Configurar Cloudinary
+cloudinary.config(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET')
+)
 
 def connect_to_db():
     return pymysql.connect(
@@ -43,35 +47,24 @@ def register_foto_routes(app):
                 return jsonify({'success': False, 'message': 'No imagen'}), 400
             
             foto_base64 = data['foto_base64']
-            if ',' in foto_base64:
-                foto_base64 = foto_base64.split(',')[1]
             
-            image_data = base64.b64decode(foto_base64)
+            # Subir a Cloudinary
+            upload_result = cloudinary.uploader.upload(
+                foto_base64,
+                folder="alegra/perfiles",
+                public_id=f"perfil_{user_id}",
+                overwrite=True,
+                resource_type="image"
+            )
             
-            if len(image_data) > MAX_FILE_SIZE:
-                return jsonify({'success': False, 'message': 'Imagen muy grande'}), 400
+            foto_url = upload_result['secure_url']
             
-            filename = f"perfil_{user_id}_{uuid.uuid4().hex[:8]}.jpg"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            
-            with open(filepath, 'wb') as f:
-                f.write(image_data)
-            
-            foto_url = f"/uploads/fotos_perfil/{filename}"
-            
+            # Actualizar base de datos
             connection = connect_to_db()
             try:
                 with connection.cursor() as cursor:
-                    cursor.execute("SELECT avatar_url FROM usuario WHERE id = %s", (user_id,))
-                    old = cursor.fetchone()
-                    
                     cursor.execute("UPDATE usuario SET avatar_url = %s WHERE id = %s", (foto_url, user_id))
                     connection.commit()
-                    
-                    if old and old.get('avatar_url'):
-                        old_file = os.path.join(UPLOAD_FOLDER, old['avatar_url'].split('/')[-1])
-                        if os.path.exists(old_file):
-                            os.remove(old_file)
             finally:
                 connection.close()
             
@@ -115,10 +108,3 @@ def register_foto_routes(app):
         except Exception as e:
             traceback.print_exc()
             return jsonify({'success': False, 'message': 'Error interno'}), 500
-
-    @app.route('/uploads/fotos_perfil/<filename>')
-    def serve_foto(filename):
-        try:
-            return send_from_directory(UPLOAD_FOLDER, filename)
-        except:
-            abort(404)
