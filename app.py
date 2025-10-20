@@ -635,47 +635,6 @@ def api_login():
         print(f"Error en /api/login: {e}")
         return jsonify({"error": str(e)}), 500
     
-# ==================== PERFIL USUARIO ====================
-@app.route('/api/usuario/perfil', methods=['GET', 'OPTIONS'])
-@jwt_required(optional=True)
-def obtener_perfil():
-    """Obtiene el perfil del usuario autenticado"""
-    if request.method == 'OPTIONS':
-        return '', 204
-    
-    try:
-        user_id = get_jwt_identity()
-        if not user_id:
-            return jsonify({'success': False, 'message': 'No autenticado'}), 401
-        
-        connection = connect_to_db()
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT id, nombre, correo, genero, telefono, fecha_nacimiento, avatar_url, rol
-                FROM usuario 
-                WHERE id = %s
-            """, (user_id,))
-            usuario = cursor.fetchone()
-            
-            if not usuario:
-                return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
-            
-         # Formatear fecha solo si NO es string
-            if usuario.get('fecha_nacimiento') and not isinstance(usuario['fecha_nacimiento'], str):
-             usuario['fecha_nacimiento'] = usuario['fecha_nacimiento'].strftime('%Y-%m-%d')
-            return jsonify({
-                'success': True,
-                'usuario': usuario
-            }), 200
-            
-    except Exception as e:
-        print(f"❌ Error obteniendo perfil: {e}")
-        traceback.print_exc()
-        return jsonify({'success': False, 'message': 'Error interno'}), 500
-    finally:
-        if 'connection' in locals():
-            connection.close()
-
 
 
 # ==================== USUARIOS ====================
