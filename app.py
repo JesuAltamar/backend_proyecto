@@ -831,34 +831,128 @@ def api_add_usuario_desde_url():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/usuarios/<int:user_id>', methods=['PUT'])
+# ==================== EDITAR USUARIO ====================
+@app.route('/api/usuarios/<int:user_id>', methods=['PUT', 'OPTIONS'])
 def editar_usuario(user_id):
+    # Manejar preflight
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     try:
-        data = request.json
+        data = request.get_json()
+        print(f"📝 Editando usuario {user_id} con datos:", data)
+        
+        if not data:
+            return jsonify({'success': False, 'message': 'No se recibieron datos'}), 400
+        
         connection = connect_to_db()
         with connection.cursor() as cursor:
-            sql = """
-                UPDATE usuario
-                SET nombre=%s, genero=%s, fecha_nacimiento=%s, telefono=%s, correo=%s
-                WHERE id=%s
-            """
-            cursor.execute(sql, (
-                data.get("nombre"),
-                data.get("genero"),
-                data.get("fecha_nacimiento"),
-                data.get("telefono"),
-                data.get("correo"),
-                user_id
-            ))
+            # Verificar que el usuario existe
+            cursor.execute("SELECT * FROM usuario WHERE id = %s", (user_id,))
+            usuario_actual = cursor.fetchone()
+            
+            if not usuario_actual:
+                return jsonify({'success': False, 'message': 'Usuario no encontrado'}), 404
+            
+            # Preparar campos a actualizar
+            campos = []
+            valores = []
+            
+            if 'nombre' in data and data['nombre']:
+                campos.append("nombre = %s")
+                valores.append(data['nombre'].strip())
+            
+            if 'correo' in data and data['correo']:
+                # Verificar que el correo no esté en uso por otro usuario
+                cursor.execute("SELECT id FROM usuario WHERE correo = %s AND id != %s", 
+                             (data['correo'], user_id))
+                if cursor.fetchone():
+                    return jsonify({
+                        'success': False, 
+                        'message': 'Este correo ya está en uso'
+                    }), 400
+                
+                campos.append("correo = %s")
+                valores.append(data['correo'].strip())
+            
+            if 'telefono' in data and data['telefono']:
+                campos.append("telefono = %s")
+                valores.append(data['telefono'].strip())
+            
+            if 'genero' in data and data['genero']:
+                campos.append("genero = %s")
+                valores.append(data['genero'])
+            
+            if 'fecha_nacimiento' in data and data['fecha_nacimiento']:
+                try:
+                    # Intentar parsear la fecha
+                    if isinstance(data['fecha_nacimiento'], str):
+                        if '-' in data['fecha_nacimiento']:
+                            fecha_obj = datetime.strptime(data['fecha_nacimiento'], '%Y-%m-%d').date()
+                        elif '/' in data['fecha_nacimiento']:
+                            fecha_obj = datetime.strptime(data['fecha_nacimiento'], '%Y/%m/%d').date()
+                        else:
+                            fecha_obj = data['fecha_nacimiento']
+                    else:
+                        fecha_obj = data['fecha_nacimiento']
+                    
+                    campos.append("fecha_nacimiento = %s")
+                    valores.append(fecha_obj)
+                except ValueError as e:
+                    print(f"❌ Error parseando fecha: {e}")
+                    return jsonify({
+                        'success': False, 
+                        'message': 'Formato de fecha inválido'
+                    }), 400
+            
+            if not campos:
+                return jsonify({
+                    'success': False, 
+                    'message': 'No hay campos para actualizar'
+                }), 400
+            
+            # Ejecutar actualización
+            valores.append(user_id)
+            sql = f"UPDATE usuario SET {', '.join(campos)} WHERE id = %s"
+            
+            print(f"🔧 SQL: {sql}")
+            print(f"🔧 Valores: {valores}")
+            
+            cursor.execute(sql, valores)
             connection.commit()
-        return jsonify({"message": "Usuario actualizado"}), 200
+            
+            # Obtener usuario actualizado
+            cursor.execute("""
+                SELECT id, nombre, correo, genero, telefono, fecha_nacimiento, rol
+                FROM usuario WHERE id = %s
+            """, (user_id,))
+            usuario_actualizado = cursor.fetchone()
+            
+            # Formatear fecha para respuesta
+            if usuario_actualizado and usuario_actualizado.get('fecha_nacimiento'):
+                if not isinstance(usuario_actualizado['fecha_nacimiento'], str):
+                    usuario_actualizado['fecha_nacimiento'] = usuario_actualizado['fecha_nacimiento'].strftime('%Y-%m-%d')
+            
+            print(f"✅ Usuario actualizado: {usuario_actualizado}")
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Usuario actualizado correctamente',
+                'usuario': usuario_actualizado
+            }), 200
+            
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"❌ Error editando usuario: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False, 
+            'message': f'Error interno: {str(e)}'
+        }), 500
     finally:
         if 'connection' in locals():
             connection.close()
-
+            
+# ==================== ELIMINAR USUARIO ====================
 @app.route('/api/usuarios/<int:user_id>', methods=['DELETE'])
 def eliminar_usuario(user_id):
     try:
