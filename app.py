@@ -727,7 +727,52 @@ def get_user_profile():
         traceback.print_exc()
         return jsonify({'success': False, 'message': 'Error interno'}), 500
 
-
+# ==================== ELIMINAR FOTO PERFIL ====================
+@app.route('/api/foto/delete', methods=['DELETE', 'OPTIONS'])
+@jwt_required(optional=True)
+def delete_foto():
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({'success': False, 'message': 'No autenticado'}), 401
+        
+        user_id = int(user_id)
+        print(f"🗑️ Eliminando foto para usuario {user_id}")
+        
+        connection = connect_to_db()
+        try:
+            with connection.cursor() as cursor:
+                # Obtener la URL actual para eliminar de Cloudinary
+                cursor.execute("SELECT avatar_url FROM usuario WHERE id = %s", (user_id,))
+                user = cursor.fetchone()
+                
+                if user and user['avatar_url']:
+                    # Intentar eliminar de Cloudinary (opcional)
+                    try:
+                        # Extraer public_id de la URL de Cloudinary
+                        if 'cloudinary.com' in user['avatar_url']:
+                            parts = user['avatar_url'].split('/')
+                            public_id = f"alegra/perfiles/perfil_{user_id}"
+                            cloudinary.uploader.destroy(public_id)
+                            print(f"✅ Foto eliminada de Cloudinary: {public_id}")
+                    except Exception as e:
+                        print(f"⚠️ No se pudo eliminar de Cloudinary: {e}")
+                
+                # Actualizar base de datos (importante)
+                cursor.execute("UPDATE usuario SET avatar_url = NULL WHERE id = %s", (user_id,))
+                connection.commit()
+        finally:
+            connection.close()
+        
+        return jsonify({'success': True, 'message': 'Foto eliminada'}), 200
+    
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ==================== USUARIOS ====================
 @app.route('/api/usuarios', methods=['GET'])
